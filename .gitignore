@@ -1,0 +1,13 @@
+# OS / Editor artifacts
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.BIN/
+.DS_Store
+*.swp
+*.bak
+~$*
+
+# Temporary SolidWorks lock files
+*.~*
+*.tmp

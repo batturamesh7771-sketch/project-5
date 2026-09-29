@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroX Jet Engine Simulation | 3D Interactive Aerospace Laboratory</title>
+  <meta name="description" content="Interactive 3D Jet Turbine Engine Simulation with real-time aerospace telemetry, dual-spool turbine rotation, PBR materials, sound effects, and component breakdown.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background Glow & Grid -->
+  <div class="space-backdrop"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Main Container -->
+  <div id="app-container">
+    <!-- Top Header -->
+    <header id="main-header">
+      <div class="brand-group">
+        <div class="logo-symbol">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" stroke="#00f0ff" stroke-opacity="0.8"/>
+            <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" fill="#00f0ff" fill-opacity="0.2"/>
+            <circle cx="12" cy="12" r="3" fill="#00f0ff"/>
+          </svg>
+        </div>
+        <div>
+          <h1 id="app-title">AERO-X1 TURBOFAN SIMULATOR</h1>
+          <div class="subtitle-badge">
+            <span class="pulse-dot"></span>
+            <span id="system-status">SYS-ACTIVE: 2022.3-AR ENGINE REPO ARCHIVE</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Badges -->
+      <div class="header-actions">
+        <button id="btn-sound-toggle" class="header-btn" title="Toggle Engine Audio (Hotkey: A)">
+          <svg id="icon-sound-on" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <span id="sound-btn-label">AUDIO: OFF</span>
+        </button>
+
+        <button id="btn-reset-view" class="header-btn" title="Reset Camera View (Hotkey: R)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span>RESET CAM</span>
+        </button>
+
+        <button id="btn-toggle-hud" class="header-btn" title="Toggle Detail Card Overlay (Hotkey: I)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span id="hud-btn-label">INFO HUD</span>
+        </button>
+
+        <button id="btn-fullscreen" class="header-btn" title="Toggle Fullscreen">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          <span>FULLSCREEN</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 3D Canvas Container -->
+    <main id="canvas-container">
+      <canvas id="webgl-canvas"></canvas>
+      
+      <!-- Canvas HUD Overlay (Draggable Tooltip & Telemetry Card) -->
+      <div id="reticle"></div>
+      <div id="part-tooltip" class="part-tooltip-card hidden">
+        <div class="tooltip-header-bar" id="tooltip-drag-handle">
+          <div class="tooltip-drag-grip" title="Drag overlay card">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="8" cy="6" r="2"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="8" cy="18" r="2"/><circle cx="16" cy="18" r="2"/></svg>
+            <span class="drag-hint">DRAG</span>
+          </div>
+          <div class="tooltip-header-status">
+            <span id="tooltip-tag" class="tooltip-tag">COMPONENT</span>
+            <span id="tooltip-status" class="tooltip-badge">NOMINAL</span>
+          </div>
+          <button id="btn-close-tooltip" class="tooltip-close-btn" title="Hide Info Card (Hotkey: I)">✕</button>
+        </div>
+        <div id="tooltip-name" class="tooltip-title">Titanium Rotor Blades</div>
+        <div id="tooltip-desc" class="tooltip-body">Precision aerodynamic airfoil blades forged from Ti-6Al-4V alloy for maximum compression ratio.</div>
+        <div class="tooltip-stats">
+          <div class="stat-mini"><span class="k">RPM:</span> <span id="tooltip-rpm" class="v">12,450</span></div>
+          <div class="stat-mini"><span class="k">MAT:</span> <span id="tooltip-mat" class="v">Ti-Alloy PBR</span></div>
+        </div>
+      </div>
+
+      <!-- Floating Dock Tabs to restore collapsed side panels -->
+      <button id="dock-tab-left" class="dock-tab dock-left hidden" title="Expand Telemetry & FADEC">
+        <span class="dock-icon">📊</span>
+        <span class="dock-label">TELEMETRY & FADEC</span>
+        <span class="dock-arrow">▶</span>
+      </button>
+      <button id="dock-tab-right" class="dock-tab dock-right hidden" title="Expand Structure & Inspection">
+        <span class="dock-arrow">◀</span>
+        <span class="dock-label">STRUCTURE & AR</span>
+        <span class="dock-icon">⚙️</span>
+      </button>
+
+      <!-- Loading Overlay -->
+      <div id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-title">INITIALIZING ENGINE REPOSITORY</div>
+        <div id="loading-status-text" class="loading-desc">Loading 3D Meshes, PBR Textures & Audio...</div>
+        <div class="loading-bar-wrap">
+          <div id="loading-bar-fill" class="loading-bar-fill"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Left Panel: Telemetry & Throttle -->
+    <aside id="left-panel" class="glass-panel floating-panel">
+      <div class="panel-header-handle" id="left-panel-handle">
+        <div class="panel-drag-grip" title="Drag to reposition panel">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="8" cy="6" r="2"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="8" cy="18" r="2"/><circle cx="16" cy="18" r="2"/></svg>
+        </div>
+        <div class="panel-section-title">
+          <span class="indicator"></span> ENGINE TELEMETRY & FADEC
+        </div>
+        <div class="panel-controls">
+          <button id="btn-collapse-left" class="panel-ctrl-btn" title="Collapse Panel">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Throttle Slider & Lever -->
+      <div class="throttle-block">
+        <div class="throttle-header">
+          <span class="label">POWER LEVER ANGLE (PLA)</span>
+          <span id="throttle-pct-display" class="value-highlight">75%</span>
+        </div>
+        
+        <div class="throttle-slider-container">
+          <input type="range" id="throttle-slider" min="0" max="100" value="75" step="1">
+          <div class="throttle-detents">
+            <span class="detent" style="left: 0%">CUT</span>
+            <span class="detent" style="left: 20%">IDLE</span>
+            <span class="detent" style="left: 65%">CRZ</span>
+            <span class="detent" style="left: 85%">MIL</span>
+            <span class="detent" style="left: 100%">A/B</span>
+          </div>
+        </div>
+
+        <div class="throttle-quick-buttons">
+          <button class="t-btn" data-val="0">CUTOFF</button>
+          <button class="t-btn" data-val="20">IDLE</button>
+          <button class="t-btn active" data-val="75">CRUISE</button>
+          <button class="t-btn" data-val="100">AFTERBURNER</button>
+        </div>
+      </div>
+
+      <!-- Telemetry Gauges Grid -->
+      <div class="telemetry-grid">
+        <!-- N1 Fan Speed -->
+        <div class="gauge-card">
+          <div class="gauge-label">N1 FAN SPEED</div>
+          <div class="gauge-value-row">
+            <span id="n1-val" class="gauge-num">87.4</span>
+            <span class="gauge-unit">% RPM</span>
+          </div>
+          <div class="meter-bar"><div id="n1-bar" class="meter-fill" style="width: 87.4%;"></div></div>
+          <div class="gauge-sub"><span id="n1-rpm">8,740</span> RPM</div>
+        </div>
+
+        <!-- N2 Core Speed -->
+        <div class="gauge-card">
+          <div class="gauge-label">N2 CORE COMPRESSOR</div>
+          <div class="gauge-value-row">
+            <span id="n2-val" class="gauge-num">92.1</span>
+            <span class="gauge-unit">% RPM</span>
+          </div>
+          <div class="meter-bar"><div id="n2-bar" class="meter-fill" style="width: 92.1%;"></div></div>
+          <div class="gauge-sub"><span id="n2-rpm">13,815</span> RPM</div>
+        </div>
+
+        <!-- EGT Exhaust Temp -->
+        <div class="gauge-card">
+          <div class="gauge-label">EGT EXHAUST TEMP</div>
+          <div class="gauge-value-row">
+            <span id="egt-val" class="gauge-num" style="color: #ffaa00;">685</span>
+            <span class="gauge-unit">°C</span>
+          </div>
+          <div class="meter-bar"><div id="egt-bar" class="meter-fill hot" style="width: 68%;"></div></div>
+          <div class="gauge-sub">MAX: 980 °C</div>
+        </div>
+
+        <!-- Thrust -->
+        <div class="gauge-card">
+          <div class="gauge-label">NET THRUST</div>
+          <div class="gauge-value-row">
+            <span id="thrust-val" class="gauge-num">94.8</span>
+            <span class="gauge-unit">kN</span>
+          </div>
+          <div class="meter-bar"><div id="thrust-bar" class="meter-fill" style="width: 73%;"></div></div>
+          <div class="gauge-sub"><span id="thrust-lbf">21,310</span> lbf</div>
+        </div>
+
+        <!-- Fuel Flow -->
+        <div class="gauge-card">
+          <div class="gauge-label">FUEL FLOW RATE</div>
+          <div class="gauge-value-row">
+            <span id="fuel-val" class="gauge-num">1,420</span>
+            <span class="gauge-unit">kg/h</span>
+          </div>
+          <div class="meter-bar"><div id="fuel-bar" class="meter-fill" style="width: 58%;"></div></div>
+          <div class="gauge-sub">TSFC: 0.41 kg/(daN·h)</div>
+        </div>
+
+        <!-- Pressure Ratio -->
+        <div class="gauge-card">
+          <div class="gauge-label">ENGINE PRESSURE (EPR)</div>
+          <div class="gauge-value-row">
+            <span id="epr-val" class="gauge-num">1.62</span>
+            <span class="gauge-unit">RATIO</span>
+          </div>
+          <div class="meter-bar"><div id="epr-bar" class="meter-fill" style="width: 62%;"></div></div>
+          <div class="gauge-sub">OPR: 32.5 : 1</div>
+        </div>
+      </div>
+
+      <!-- Real-Time Brayton Cycle PV Diagram (Thermodynamic Digital Twin) -->
+      <div class="brayton-card">
+        <div class="brayton-header">
+          <div class="brayton-title">BRAYTON CYCLE (P-V DIAGRAM)</div>
+          <div class="brayton-metrics">
+            <div>ηth: <span id="brayton-eff" class="v">43.8%</span></div>
+            <div>Wnet: <span id="brayton-wnet" class="v">48.2 MW</span></div>
+          </div>
+        </div>
+        <div class="brayton-svg-container">
+          <svg id="brayton-svg" viewBox="0 0 280 110" width="100%" height="100%">
+            <!-- Grid lines -->
+            <line x1="30" y1="95" x2="270" y2="95" stroke="#1f2937" stroke-width="1"/>
+            <line x1="30" y1="15" x2="30" y2="95" stroke="#1f2937" stroke-width="1"/>
+            <text x="12" y="55" fill="#64748b" font-size="8" font-family="JetBrains Mono" transform="rotate(-90 12,55)">PRESSURE</text>
+            <text x="135" y="106" fill="#64748b" font-size="8" font-family="JetBrains Mono">VOLUME (V)</text>
+            
+            <!-- Dynamic PV Loop polygon -->
+            <polygon id="pv-polygon" points="240,90 80,45 110,20 250,75" fill="rgba(0, 240, 255, 0.12)" stroke="#00f0ff" stroke-width="2"/>
+            
+            <!-- State Points (1: Intake, 2: Compressor, 3: Combustor, 4: Turbine) -->
+            <circle id="pv-pt1" cx="240" cy="90" r="3" fill="#00f0ff"/>
+            <text id="pv-lbl1" x="246" y="93" fill="#94a3b8" font-size="7" font-family="JetBrains Mono">1</text>
+            
+            <circle id="pv-pt2" cx="80" cy="45" r="3" fill="#ffaa00"/>
+            <text id="pv-lbl2" x="70" y="45" fill="#94a3b8" font-size="7" font-family="JetBrains Mono">2</text>
+            
+            <circle id="pv-pt3" cx="110" cy="20" r="3" fill="#ff3b5c"/>
+            <text id="pv-lbl3" x="114" y="18" fill="#ff3b5c" font-size="7" font-family="JetBrains Mono">3</text>
+            
+            <circle id="pv-pt4" cx="250" cy="75" r="3" fill="#00ff88"/>
+            <text id="pv-lbl4" x="256" y="78" fill="#94a3b8" font-size="7" font-family="JetBrains Mono">4</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Variable Stator Vanes (VSV) & Bleed Air Subsystems -->
+      <div class="subsystem-grid">
+        <div class="subsystem-item">
+          <span class="subsystem-lbl">VSV STATOR ANGLE</span>
+          <span id="vsv-angle-val" class="subsystem-val">-2.8°</span>
+          <span id="vsv-status" class="subsystem-badge">ACTUATION: SYNC</span>
+        </div>
+        <div class="subsystem-item">
+          <span class="subsystem-lbl">BLEED AIR (ECS 4/9)</span>
+          <span id="bleed-status-val" class="subsystem-val">ACTIVE</span>
+          <span id="bleed-press-val" class="subsystem-badge">24.2 PSI TAPPED</span>
+        </div>
+      </div>
+
+      <!-- Fault Injection / Compressor Stall Simulation -->
+      <div class="fault-control-card">
+        <div class="fault-header">
+          <span class="fault-title">AERODYNAMIC SURGE & FAULT INJECTION</span>
+          <span id="stall-indicator" class="stall-badge normal">SURGE MARGIN: 28%</span>
+        </div>
+        <button id="btn-stall-toggle" class="stall-btn" title="Simulate compressor surge, thrust collapse, EGT redline, reversed intake blast & airframe vibration">
+          <span class="stall-icon">⚠️</span>
+          <span id="stall-btn-text">INDUCE COMPRESSOR STALL</span>
+        </button>
+      </div>
+
+      <!-- Engine Master Switch -->
+      <div class="engine-master-card">
+        <div class="master-row">
+          <div>
+            <div class="master-title">ENGINE MASTER CONTROL</div>
+            <div id="master-status" class="master-sub">RUNNING • ROTATION SYNC ON</div>
+          </div>
+          <button id="btn-engine-toggle" class="btn-toggle-engine running" title="Toggle Rotation (Hotkey: Space)">
+            <span class="btn-glow"></span>
+            <span id="engine-btn-text">STOP</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Panel: Inspection & Controls -->
+    <aside id="right-panel" class="glass-panel floating-panel">
+      <div class="panel-header-handle" id="right-panel-handle">
+        <div class="panel-drag-grip" title="Drag to reposition panel">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="8" cy="6" r="2"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="8" cy="18" r="2"/><circle cx="16" cy="18" r="2"/></svg>
+        </div>
+        <div class="panel-section-title">
+          <span class="indicator"></span> STRUCTURE & AR INSPECTION
+        </div>
+        <div class="panel-controls">
+          <button id="btn-collapse-right" class="panel-ctrl-btn" title="Collapse Panel">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hull Visibility Modes (Direct from Unity MeshToggler) -->
+      <div class="control-box">
+        <div class="box-title">
+          <span>CASING VISIBILITY (MESH TOGGLER)</span>
+          <span class="hotkey-badge">[H] / [X]</span>
+        </div>
+        <div class="mode-buttons-row">
+          <button id="btn-hull-solid" class="pill-btn active" title="Solid Exterior Casing">SOLID HULL</button>
+          <button id="btn-hull-xray" class="pill-btn" title="Semi-Transparent X-Ray Inspection">X-RAY GHOST</button>
+          <button id="btn-hull-hide" class="pill-btn" title="Hide Hull to expose interior core">EXPOSE CORE</button>
+        </div>
+      </div>
+
+      <!-- Exploded View Slider -->
+      <div class="control-box">
+        <div class="box-header-row">
+          <span class="box-title">EXPLODED ASSEMBLY VIEW</span>
+          <span id="explode-pct" class="val-mono">0%</span>
+        </div>
+        <input type="range" id="explode-slider" min="0" max="100" value="0" step="1">
+        <div class="quick-explode-btns">
+          <button id="btn-explode-0" class="sub-btn active">ASSEMBLED</button>
+          <button id="btn-explode-50" class="sub-btn">PARTIAL (50%)</button>
+          <button id="btn-explode-100" class="sub-btn">FULL (100%)</button>
+        </div>
+      </div>
+
+      <!-- Camera Viewpoints -->
+      <div class="control-box">
+        <div class="box-title">CAMERA VIEWPOINTS</div>
+        <div class="cam-presets-grid">
+          <button class="cam-btn active" data-cam="iso">ISOMETRIC</button>
+          <button class="cam-btn" data-cam="front">INTAKE FAN</button>
+          <button class="cam-btn" data-cam="side">SIDE PROFILE</button>
+          <button class="cam-btn" data-cam="exhaust">EXHAUST NOZZLE</button>
+          <button class="cam-btn" data-cam="top">TOP BLUEPRINT</button>
+          <button class="cam-btn" data-cam="rotor">TURBINE SHAFT</button>
+        </div>
+      </div>
+
+      <!-- Component Explorer Selector -->
+      <div class="control-box">
+        <div class="box-title">ENGINE COMPONENT BREAKDOWN</div>
+        <div class="component-list">
+          <div class="comp-item active" data-part="fan">
+            <div class="comp-icon">🌀</div>
+            <div class="comp-info">
+              <div class="comp-name">Fan & Intake Spinner</div>
+              <div class="comp-sub">22 Scimitar Titanium Blades • Low Bypass</div>
+            </div>
+            <div class="comp-state">ROTATING</div>
+          </div>
+
+          <div class="comp-item" data-part="hull">
+            <div class="comp-icon">🛡️</div>
+            <div class="comp-info">
+              <div class="comp-name">Titanium Nacelle & Hull</div>
+              <div class="comp-sub">Dual-walled Acoustic Lining & Middle Shroud</div>
+            </div>
+            <div class="comp-state">TOGGLABLE</div>
+          </div>
+
+          <div class="comp-item" data-part="grid">
+            <div class="comp-icon">⚡</div>
+            <div class="comp-info">
+              <div class="comp-name">Intake Grid & Stator Guides</div>
+              <div class="comp-sub">FOD Protection & Inlet Swirl Dampers</div>
+            </div>
+            <div class="comp-state">STATIC</div>
+          </div>
+
+          <div class="comp-item" data-part="nozzle">
+            <div class="comp-icon">🔥</div>
+            <div class="comp-info">
+              <div class="comp-name">Convergent Flaps & Stabilisers</div>
+              <div class="comp-sub">Variable Nozzle Area & Hydraulic Actuators</div>
+            </div>
+            <div class="comp-state">ACTUATING</div>
+          </div>
+
+          <div class="comp-item" data-part="fuel">
+            <div class="comp-icon">🚰</div>
+            <div class="comp-info">
+              <div class="comp-name">Fuel Manifolds & Hydraulic Lines</div>
+              <div class="comp-sub">Dual High-Pressure Stage Rails & Clamps</div>
+            </div>
+            <div class="comp-state">PRESSURIZED</div>
+          </div>
+
+          <div class="comp-item" data-part="fadec">
+            <div class="comp-icon">💻</div>
+            <div class="comp-info">
+              <div class="comp-name">FADEC Electronics & Harness</div>
+              <div class="comp-sub">Dual-Channel Digital Computer & Sensor Pods</div>
+            </div>
+            <div class="comp-state">ONLINE</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Environment & Lighting Controls -->
+      <div class="control-box">
+        <div class="box-title">VISUAL ENVIRONMENT</div>
+        <div class="env-toggle-row">
+          <button id="btn-env-hangar" class="env-btn active">TECH HANGAR</button>
+          <button id="btn-env-dark" class="env-btn">DARK LAB</button>
+          <button id="btn-particles" class="env-btn active">AIRFLOW PARTICLES</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Footer Status Bar -->
+    <footer id="main-footer">
+      <div class="footer-left">
+        <span class="status-pill ok">● 3D WEBGL ENGINE RUNNING</span>
+        <span class="status-meta">28 SUBMESHES LOADED • 17 PBR TEXTURES • TIME DELTA: <span id="delta-display">16.6ms</span></span>
+      </div>
+      <div class="footer-hotkeys">
+        <span><kbd>SPACE</kbd> RUN/PAUSE</span>
+        <span><kbd>H</kbd> HULL TOGGLE</span>
+        <span><kbd>X</kbd> X-RAY MODE</span>
+        <span><kbd>A</kbd> AUDIO ON/OFF</span>
+        <span><kbd>R</kbd> RESET CAM</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script src="js/GLTFLoader.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
