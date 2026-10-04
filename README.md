@@ -1,4 +1,6 @@
 # Project 5: AeroX-1 / GE90-115B Turbofan Engine Digital Twin
+[![Author](https://img.shields.io/badge/Author-ELONIKHIL-blue.svg)](https://github.com/batturamesh7771-sketch)
+
 
 [![Three.js](https://img.shields.io/badge/WebGL-Three.js_r128-blue.svg)](https://threejs.org/)
 [![SolidWorks](https://img.shields.io/badge/CAD-SolidWorks_2026-red.svg)](https://www.solidworks.com/)
@@ -123,3 +125,10 @@ python -m http.server 8088
 
 ## 📜 4. License
 This project is released under the **MIT License**.
+
+---
+
+## 👨‍💻 Author & Attribution
+* **Lead Architect & Engineer:** **ELONIKHIL** (@batturamesh7771-sketch)
+* **Project Series:** PROJECT 05 of the Aerospace Engineering Portfolio
+* **License:** [MIT License](LICENSE) (c) 2026 ELONIKHIL
